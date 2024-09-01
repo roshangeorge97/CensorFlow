@@ -60,7 +60,6 @@ model = AutoModelForSequenceClassification.from_pretrained(MODEL_INFO["name"])
 
 # Load Gemini API
 genai.configure(api_key=os.environ['API_KEY'])
-model = genai.GenerativeModel("gemini-1.5-flash")
 
 # Task management
 task_status = {}
@@ -102,12 +101,15 @@ Suggested Improvement:"""
     # Use Gemini API to generate content
     try:
         model = genai.GenerativeModel("gemini-1.5-flash")
+        # Assuming 'generate_content' is the incorrect method,
+        # You might need to replace it with the correct method:
         response = model.generate_content(prompt)
         suggested_text = response.text
         return suggested_text.split("Suggested Improvement:")[-1].strip()
     except Exception as e:
         print(f"Error generating content with Gemini API: {e}")
         return "Error generating suggestion"
+
 
 def process_task(task_id: str, method: str, payload: dict):
     start_time = time.time()
