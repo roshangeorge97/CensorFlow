@@ -13,6 +13,8 @@ from dotenv import load_dotenv
 import os
 import google.generativeai as genai
 import torch
+from api.models import ModerateTextRequest, ModerateBatchRequest, SuggestTextRequest, TaskRequest
+from utils.status_codes import StatusCodes
 
 # Constants
 load_dotenv()
@@ -64,20 +66,6 @@ genai.configure(api_key=os.environ['API_KEY'])
 # Task management
 task_status = {}
 task_results = {}
-
-# Pydantic models
-class ModerateTextRequest(BaseModel):
-    text: str
-
-class ModerateBatchRequest(BaseModel):
-    texts: List[str]
-
-class SuggestTextRequest(BaseModel):
-    text: str
-    moderation_result: Dict[str, float]
-
-class TaskRequest(BaseModel):
-    taskId: str
 
 # Helper functions
 def moderate_text(text: str) -> Dict[str, float]:
@@ -137,6 +125,8 @@ def process_task(task_id: str, method: str, payload: dict):
     return process_duration
 
 # API endpoints
+
+# Call Endpoint
 @app.post("/call")
 async def call_endpoint(request: Request, x_user_id: str = Header(None), x_marketplace_token: str = Header(None), x_user_role: str = Header(None)):
     start_time = time.time()
@@ -158,6 +148,7 @@ async def call_endpoint(request: Request, x_user_id: str = Header(None), x_marke
     process_duration = int((time.time() - start_time) * 1000)
     return response_template(str(uuid.uuid4()), str(uuid.uuid4()), process_duration, False, {"taskId": task_id}, {"status": "PENDING", "reason": "Task is pending"})
 
+# Result Endpoint
 @app.post("/result")
 async def result(request: Request, task_request: TaskRequest, x_user_id: str = Header(None), x_marketplace_token: str = Header(None), x_user_role: str = Header(None)):
     if not all([x_user_id, x_marketplace_token, x_user_role]):
@@ -177,6 +168,28 @@ async def result(request: Request, task_request: TaskRequest, x_user_id: str = H
 @app.get("/model-info")
 async def get_model_info():
     return MODEL_INFO
+
+# Stats API
+@app.post("/stats")
+async def stats(request: Request, x_user_id: str = Header(None), x_request_id: str = Header(None), x_marketplace_token: str = Header(None), x_user_role: str = Header(None)):
+    if not all([x_user_id, x_request_id, x_marketplace_token, x_user_role]):
+        error_code = {"status": StatusCodes.ERROR, "reason": "Missing required headers"}
+        response_data = response_template(x_request_id, str(uuid.uuid4()), -1, True, {}, error_code)
+        raise HTTPException(status_code=400, detail=response_data)
+
+    stats_data = {
+        "numRequestSuccess": 100,
+        "numRequestFailed": 10
+    }
+
+    return response_template(
+        request_id=x_request_id,
+        trace_id=str(uuid.uuid4()),
+        process_duration=0,
+        isResponseImmediate=True,
+        response=stats_data,
+        error_code={"status": StatusCodes.SUCCESS, "reason": "Stats retrieved successfully"}
+    )
 
 # Response template
 def response_template(request_id, trace_id, process_duration, is_response_immediate, response, error_code):
