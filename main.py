@@ -12,7 +12,7 @@ from typing import List, Dict
 from dotenv import load_dotenv
 import os
 import google.generativeai as genai
-
+import torch
 
 # Constants
 load_dotenv()

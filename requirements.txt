@@ -18,3 +18,4 @@ transformers==4.43.3
 typing-extensions==4.8.0
 nest_asyncio
 google-generativeai
+torch
